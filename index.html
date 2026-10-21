@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A simple task list to help you plan a little and get things done.">
+  <title>Daylist — Make room for what matters</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f2eb;
+      --card: #fffefa;
+      --ink: #203c3b;
+      --muted: #5f6b66;
+      --line: #d8ddd3;
+      --accent: #a94721;
+      --accent-hover: #873817;
+      --soft-green: #e5eddf;
+      --error: #9e2d25;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    button, input { font: inherit; }
+    button, a, input { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+    a { color: var(--ink); text-underline-offset: 5px; }
+    button:focus-visible, a:focus-visible, input:focus-visible {
+      outline: 3px solid #a94721;
+      outline-offset: 4px;
+    }
+    button:disabled { cursor: not-allowed; }
+    .shell { width: min(1120px, calc(100% - 64px)); margin: 0 auto; }
+    .site-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 100px;
+      gap: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 23px; font-weight: 750; letter-spacing: -1px; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border-radius: 9px;
+      background: var(--ink);
+      color: #fffefa;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .help-link { font-size: 14px; font-weight: 650; }
+    .intro { padding: 47px 0 29px; }
+    .eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 12px; font-weight: 750; letter-spacing: 2px; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(33px, 4.2vw, 48px); line-height: 1.15; letter-spacing: -1.8px; font-weight: 720; }
+    .intro p:last-child { margin: 14px 0 0; color: var(--muted); font-size: 16px; }
+    .workspace { min-height: calc(100vh - 100px); padding-bottom: 76px; }
+    .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 276px; align-items: start; gap: 24px; }
+    .task-panel { padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    h2 { margin: 0; font-size: 23px; line-height: 1.3; letter-spacing: -.6px; }
+    .export-button {
+      flex-shrink: 0;
+      padding: 9px 14px;
+      border: 1px solid #a2b3a7;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .export-button:hover { background: #edf1e9; }
+    .field-label { display: block; margin-bottom: 7px; font-size: 14px; font-weight: 650; }
+    .form-row { display: flex; gap: 10px; }
+    .task-input {
+      width: 100%;
+      min-width: 0;
+      min-height: 48px;
+      padding: 11px 13px;
+      border: 1px solid #aebbb1;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+    }
+    .task-input::placeholder { color: #6f7872; }
+    .task-input[aria-invalid="true"] { border: 2px solid var(--error); }
+    .add-button {
+      flex-shrink: 0;
+      min-height: 48px;
+      padding: 11px 19px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 650;
+    }
+    .add-button:hover { background: var(--accent-hover); }
+    .field-hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+    .error-message { margin: 8px 0 0; color: var(--error); font-size: 14px; font-weight: 600; }
+    [hidden] { display: none !important; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 28px 0 18px; }
+    .filters { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+    .filter-button {
+      min-height: 42px;
+      padding: 7px 12px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .filter-button:hover { background: #edf1e9; }
+    .filter-button[aria-pressed="true"] { border-color: #c9d4c3; background: var(--soft-green); color: var(--ink); }
+    .task-count { margin: 0; white-space: nowrap; color: var(--muted); font-size: 12px; }
+    .task-list { margin: 0; padding: 0; list-style: none; }
+    .task-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid #e4e6dd; }
+    .task-checkbox { flex: 0 0 21px; width: 21px; height: 21px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+    .task-label { flex: 1; min-width: 0; overflow-wrap: anywhere; cursor: pointer; font-size: 15px; }
+    .task-row.is-complete .task-label { color: var(--muted); text-decoration: line-through; }
+    .delete-button { min-height: 40px; padding: 7px 10px; border: 0; border-radius: 6px; background: transparent; color: #86402b; font-size: 12px; font-weight: 650; }
+    .delete-button:hover { background: #f6e9e2; }
+    .empty-state { padding: 35px 15px 31px; border: 1px dashed #cbd5c8; border-radius: 12px; text-align: center; }
+    .empty-mark { display: grid; place-items: center; width: 44px; height: 44px; margin: 0 auto 12px; border: 1px solid #c1ceba; border-radius: 50%; color: #627b5d; font-size: 23px; }
+    .empty-state h3 { margin: 0 0 6px; font-size: 17px; font-weight: 650; }
+    .empty-state p { margin: 0; color: var(--muted); font-size: 13px; }
+    .status-message { min-height: 21px; margin: 17px 0 0; color: var(--muted); font-size: 12px; }
+    .storage-warning { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: #fff1d9; color: #754b0a; font-size: 13px; }
+    .side-card { padding: 24px; border: 1px solid #c8d4bf; border-radius: var(--radius); background: var(--soft-green); }
+    .side-label { margin: 0 0 17px; font-size: 12px; font-weight: 750; letter-spacing: 1.4px; text-transform: uppercase; }
+    .progress-number { margin: 0; font-size: 48px; line-height: 1.1; font-weight: 700; letter-spacing: -2px; }
+    .progress-number span { font-size: 19px; letter-spacing: -.5px; font-weight: 500; }
+    .progress-caption { margin: 7px 0 20px; color: #4c624b; font-size: 13px; }
+    .progress-track { height: 7px; overflow: hidden; border-radius: 8px; background: #cbd8c3; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: var(--ink); transition: width .2s ease; }
+    .side-note { margin: 22px 0 0; padding-top: 19px; border-top: 1px solid #c8d4bf; color: #4c624b; font-size: 13px; }
+    .quiet-note { margin: 18px 12px 0; color: var(--muted); font-size: 12px; }
+    .help-section { padding: 51px 0 63px; border-top: 1px solid var(--line); }
+    .help-heading { max-width: 580px; margin-bottom: 28px; }
+    .help-heading h2 { font-size: 31px; letter-spacing: -1px; }
+    .help-heading p:last-child { margin: 12px 0 0; color: var(--muted); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 21px; margin-bottom: 42px; }
+    .step { padding: 23px; border: 1px solid var(--line); border-radius: 13px; background: #f9f7f1; }
+    .step-number { display: inline-block; margin-bottom: 14px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: 1px; }
+    .step h3 { margin: 0 0 9px; font-size: 17px; }
+    .step p { margin: 0; color: var(--muted); font-size: 14px; }
+    .faq-title { margin-bottom: 18px; font-size: 21px; }
+    .faq { max-width: 760px; }
+    .faq details { border-top: 1px solid var(--line); }
+    .faq details:last-child { border-bottom: 1px solid var(--line); }
+    .faq summary { padding: 17px 5px; cursor: pointer; font-size: 15px; font-weight: 650; }
+    .faq summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .faq p { margin: 0; padding: 0 5px 19px; color: var(--muted); font-size: 14px; }
+    .site-footer { display: flex; justify-content: space-between; gap: 20px; padding: 24px 0 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .site-footer p { margin: 0; }
+
+    @media (max-width: 850px) {
+      .workspace-grid { grid-template-columns: minmax(0, 1fr) 225px; gap: 18px; }
+      .task-panel { padding: 23px; }
+      .side-card { padding: 21px; }
+      .toolbar { align-items: flex-start; flex-direction: column; gap: 5px; }
+      .steps { gap: 13px; }
+      .step { padding: 19px; }
+    }
+    @media (max-width: 680px) {
+      .shell { width: calc(100% - 32px); }
+      .site-header { min-height: 79px; }
+      .intro { padding: 34px 0 26px; }
+      h1 { font-size: 35px; }
+      .intro p:last-child { max-width: 300px; font-size: 15px; }
+      .workspace { min-height: calc(100vh - 79px); padding-bottom: 49px; }
+      .workspace-grid { grid-template-columns: 1fr; }
+      .task-panel { padding: 21px 18px; }
+      .panel-heading { gap: 8px; margin-bottom: 22px; }
+      h2 { font-size: 21px; }
+      .export-button { padding: 9px 11px; font-size: 12px; }
+      .add-button { padding: 11px 15px; }
+      .toolbar { flex-direction: row; align-items: center; gap: 8px; }
+      .filter-button { padding: 7px 9px; font-size: 12px; }
+      .task-count { font-size: 11px; }
+      .side-card { padding: 21px; }
+      .side-label { margin-bottom: 11px; }
+      .progress-number { font-size: 38px; }
+      .progress-caption { margin-bottom: 14px; }
+      .side-note { margin-top: 17px; padding-top: 15px; }
+      .help-section { padding-top: 38px; }
+      .help-heading h2 { font-size: 28px; }
+      .steps { grid-template-columns: 1fr; gap: 14px; }
+      .step { padding: 22px; }
+      .step-number { margin-bottom: 8px; }
+      .site-footer { flex-direction: column; gap: 6px; }
+    }
+    @media (max-width: 365px) {
+      .form-row { flex-direction: column; }
+      .toolbar { flex-direction: column; align-items: flex-start; }
+      .panel-heading { align-items: flex-start; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .progress-fill { transition: none; }
+    }
+  </style>
+  <!-- CLARITY TRACKING CODE HERE -->
+</head>
+<body>
+  <div class="shell">
+    <header class="site-header" id="top">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✓</span> Daylist</div>
+      <a class="help-link" href="#help">How it works</a>
+    </header>
+
+    <main>
+      <section class="workspace" aria-labelledby="page-title">
+        <div class="intro">
+          <p class="eyebrow">A little focus, every day</p>
+          <h1 id="page-title">Make room for what matters.</h1>
+          <p>Get your tasks out of your head and into a simple list.</p>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="task-panel" aria-labelledby="tasks-heading">
+            <div class="panel-heading">
+              <h2 id="tasks-heading">Your tasks</h2>
+              <!-- Deliberate usability flaw for the lab: this button has no handler and does nothing. -->
+              <button class="export-button" type="button" id="export-tasks">Export tasks</button>
+            </div>
+
+            <form id="task-form" novalidate>
+              <label class="field-label" for="task-input">What do you need to do?</label>
+              <div class="form-row">
+                <input class="task-input" id="task-input" name="task" type="text" placeholder="e.g., Review my class notes" maxlength="120" autocomplete="off" aria-describedby="task-hint task-error" required>
+                <button class="add-button" type="submit">Add task</button>
+              </div>
+              <p class="field-hint" id="task-hint">Keep it specific. Up to 120 characters.</p>
+              <p class="error-message" id="task-error" role="alert" hidden></p>
+            </form>
+
+            <div class="toolbar">
+              <div class="filters" role="group" aria-label="Filter tasks">
+                <button class="filter-button" type="button" data-filter="all" aria-pressed="true">All</button>
+                <button class="filter-button" type="button" data-filter="active" aria-pressed="false">Active</button>
+                <button class="filter-button" type="button" data-filter="completed" aria-pressed="false">Completed</button>
+              </div>
+              <p class="task-count" id="task-count">0 tasks</p>
+            </div>
+
+            <ul class="task-list" id="task-list" aria-label="Your task list"></ul>
+            <div class="empty-state" id="empty-state">
+              <div class="empty-mark" aria-hidden="true">＋</div>
+              <h3 id="empty-title">A fresh start.</h3>
+              <p id="empty-description">Add your first task above. One small step is enough.</p>
+            </div>
+            <p class="status-message" id="status-message" role="status" aria-live="polite">Your list is ready.</p>
+            <p class="storage-warning" id="storage-warning" role="alert" hidden></p>
+          </section>
+
+          <aside aria-label="Task progress">
+            <div class="side-card">
+              <p class="side-label">Your progress</p>
+              <p class="progress-number"><strong id="completed-count">0</strong><span> / <span id="total-count">0</span></span></p>
+              <p class="progress-caption" id="progress-caption">Tasks completed. Start with one.</p>
+              <div class="progress-track" role="progressbar" aria-label="Tasks completed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+              </div>
+              <p class="side-note">Small tasks are easier to start. Try “read 5 pages” instead of “study everything.”</p>
+            </div>
+            <p class="quiet-note">Your tasks are saved in this browser. Come back and pick up where you left off.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="help-section" id="help" aria-labelledby="help-title">
+        <div class="help-heading">
+          <p class="eyebrow">Keep it simple</p>
+          <h2 id="help-title">A calmer way to get things done.</h2>
+          <p>A short list and a clear next step can make a busy day feel a little more manageable.</p>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <span class="step-number">01 / WRITE IT DOWN</span>
+            <h3>Start with one task.</h3>
+            <p>Type something you want to do and select Add task, or press Enter. Use a short description that tells you exactly what to do next.</p>
+          </article>
+          <article class="step">
+            <span class="step-number">02 / FIND YOUR FOCUS</span>
+            <h3>See what needs attention.</h3>
+            <p>Use Active to see unfinished tasks. Switch to Completed to review your progress, or All to see everything together.</p>
+          </article>
+          <article class="step">
+            <span class="step-number">03 / MAKE PROGRESS</span>
+            <h3>Check it off and move on.</h3>
+            <p>Select a task’s checkbox when it is done. Select it again to reopen the task. Use Delete when you no longer need an item.</p>
+          </article>
+        </div>
+
+        <h2 class="faq-title">Good to know</h2>
+        <div class="faq">
+          <details>
+            <summary>Will my tasks still be here after I refresh?</summary>
+            <p>Yes, when your browser allows local storage. Your list is saved automatically on this device and in this browser. Clearing site data removes it, and a private browsing window may erase it when you close that window.</p>
+          </details>
+          <details>
+            <summary>Why did I get an error when adding a task?</summary>
+            <p>A task needs a description. Empty entries and spaces alone are not accepted. Write a short task using no more than 120 characters, then select Add task again.</p>
+          </details>
+          <details>
+            <summary>Where did my task go after I completed it?</summary>
+            <p>If you are viewing Active tasks, completing one removes it from that view. Select Completed or All to find it. Uncheck it if you want to make it active again.</p>
+          </details>
+          <details>
+            <summary>Can I get a deleted task back?</summary>
+            <p>Deleting removes the task from this list. There is no undo button, so use the completion checkbox if you want to keep a record of what you finished.</p>
+          </details>
+          <details>
+            <summary>Will my list sync to another browser or phone?</summary>
+            <p>No. Each browser keeps its own list on its own device. This simple task manager does not have an account or a synchronization feature.</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Daylist · One small step at a time.</p>
+      <a href="#top">Back to your tasks ↑</a>
+    </footer>
+  </div>
+
+  <script>
+    "use strict";
+
+    // All app data stays in this browser. Clarity is added separately in <head>.
+    const STORAGE_KEY = "it355-daylist-tasks-v1";
+    const form = document.getElementById("task-form");
+    const input = document.getElementById("task-input");
+    const error = document.getElementById("task-error");
+    const taskList = document.getElementById("task-list");
+    const emptyState = document.getElementById("empty-state");
+    const statusMessage = document.getElementById("status-message");
+    const storageWarning = document.getElementById("storage-warning");
+    const filterButtons = document.querySelectorAll("[data-filter]");
+    let tasks = [];
+    let currentFilter = "all";
+    let idSequence = 0;
+
+    function showStorageWarning(message) {
+      storageWarning.textContent = message;
+      storageWarning.hidden = false;
+    }
+
+    function loadTasks() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved === null) return;
+        const parsed = JSON.parse(saved);
+        const valid = Array.isArray(parsed) && parsed.every(function (task) {
+          return task && typeof task.id === "string" &&
+            typeof task.text === "string" && task.text.trim().length > 0 &&
+            task.text.length <= 120 && typeof task.completed === "boolean";
+        });
+        if (!valid) throw new Error("Invalid saved tasks");
+        tasks = parsed;
+      } catch (problem) {
+        showStorageWarning("Your saved list could not be loaded. You can still use this page; new changes will try to save a fresh list.");
+      }
+    }
+
+    function saveTasks() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        storageWarning.hidden = true;
+        storageWarning.textContent = "";
+      } catch (problem) {
+        showStorageWarning("This browser could not save your list. Your tasks will work here, but may be lost when you refresh or close the page.");
+      }
+    }
+
+    function announce(message) {
+      statusMessage.textContent = message;
+    }
+
+    function showError(message) {
+      error.textContent = message;
+      error.hidden = false;
+      input.setAttribute("aria-invalid", "true");
+      input.focus();
+    }
+
+    function clearError() {
+      error.hidden = true;
+      error.textContent = "";
+      input.removeAttribute("aria-invalid");
+    }
+
+    function renderTasks() {
+      taskList.replaceChildren();
+      const visibleTasks = tasks.filter(function (task) {
+        if (currentFilter === "active") return !task.completed;
+        if (currentFilter === "completed") return task.completed;
+        return true;
+      });
+
+      visibleTasks.forEach(function (task) {
+        const row = document.createElement("li");
+        row.className = "task-row" + (task.completed ? " is-complete" : "");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "task-checkbox";
+        checkbox.id = "task-" + task.id;
+        checkbox.checked = task.completed;
+        checkbox.addEventListener("change", function () {
+          task.completed = checkbox.checked;
+          saveTasks();
+          renderTasks();
+          announce(task.completed ? "Task completed." : "Task moved back to Active.");
+          const updatedCheckbox = document.getElementById("task-" + task.id);
+          if (updatedCheckbox) updatedCheckbox.focus();
+          else document.querySelector('[data-filter="' + currentFilter + '"]').focus();
+        });
+
+        const label = document.createElement("label");
+        label.className = "task-label";
+        label.htmlFor = checkbox.id;
+        label.textContent = task.text;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "delete-button";
+        deleteButton.textContent = "Delete";
+        deleteButton.setAttribute("aria-label", "Delete task: " + task.text);
+        deleteButton.addEventListener("click", function () {
+          tasks = tasks.filter(function (item) { return item.id !== task.id; });
+          saveTasks();
+          renderTasks();
+          announce("Task deleted.");
+          input.focus();
+        });
+
+        row.append(checkbox, label, deleteButton);
+        taskList.appendChild(row);
+      });
+
+      emptyState.hidden = visibleTasks.length > 0;
+      const emptyMessages = {
+        all: ["A fresh start.", "Add your first task above. One small step is enough."],
+        active: ["Nothing waiting here.", "Add a new task, or select All to see your full list."],
+        completed: ["Your progress starts here.", "Complete a task using its checkbox to see it in this view."]
+      };
+      document.getElementById("empty-title").textContent = emptyMessages[currentFilter][0];
+      document.getElementById("empty-description").textContent = emptyMessages[currentFilter][1];
+
+      const visibleCount = visibleTasks.length;
+      document.getElementById("task-count").textContent = visibleCount + (visibleCount === 1 ? " task" : " tasks");
+      const completedCount = tasks.filter(function (task) { return task.completed; }).length;
+      const percentage = tasks.length ? Math.round(completedCount / tasks.length * 100) : 0;
+      document.getElementById("completed-count").textContent = completedCount;
+      document.getElementById("total-count").textContent = tasks.length;
+      document.getElementById("progress-caption").textContent = tasks.length ?
+        (completedCount === tasks.length ? "All done. Enjoy a little breathing room." : "Tasks completed. Keep going at your pace.") :
+        "Tasks completed. Start with one.";
+      document.getElementById("progress-fill").style.width = percentage + "%";
+      document.getElementById("progress-bar").setAttribute("aria-valuenow", percentage);
+      document.getElementById("progress-bar").setAttribute("aria-valuetext", completedCount + " of " + tasks.length + " tasks completed");
+
+      filterButtons.forEach(function (button) {
+        button.setAttribute("aria-pressed", String(button.dataset.filter === currentFilter));
+      });
+    }
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) {
+        showError("Please enter a task. Blank spaces do not count.");
+        return;
+      }
+      if (text.length > 120) {
+        showError("Please keep your task to 120 characters or fewer.");
+        return;
+      }
+      clearError();
+      idSequence += 1;
+      tasks.push({ id: Date.now().toString(36) + "-" + idSequence, text: text, completed: false });
+      // Show the new task even if the user was looking at completed items.
+      if (currentFilter === "completed") currentFilter = "all";
+      saveTasks();
+      renderTasks();
+      input.value = "";
+      input.focus();
+      announce("Task added.");
+    });
+
+    input.addEventListener("input", clearError);
+
+    filterButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        currentFilter = button.dataset.filter;
+        renderTasks();
+        announce("Showing " + currentFilter + " tasks.");
+      });
+    });
+
+    loadTasks();
+    renderTasks();
+  </script>
+</body>
+</html>
